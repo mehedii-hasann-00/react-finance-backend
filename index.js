@@ -33,6 +33,10 @@ async function connectDB() {
     const db = client.db("testDB");      // choose your DB name
     collection = db.collection("users"); // choose your collection name
 
+  } catch (err) {
+    console.error("MongoDB connection error:", err);
+  }
+}
 // Kick off once at cold start
 await connectDB();
 

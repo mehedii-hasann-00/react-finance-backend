@@ -12,24 +12,32 @@ app.use(express.json());
 
 
 
+// import admin from "firebase-admin";
+// import { fileURLToPath } from "url";
+// import { dirname } from "path";
+// import fs from "fs";
+
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = dirname(__filename);
+
+// const serviceAccountPath = `${__dirname}/ass-10-firebase-adminsdk.json`;
+
+// const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
+
+// admin.initializeApp({
+//   credential: admin.credential.cert(serviceAccount)
+// });
+
+
 import admin from "firebase-admin";
-import { fileURLToPath } from "url";
-import { dirname } from "path";
-import fs from "fs";
 
-// Get the directory name of the current module
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Set up the path to the service account file
-const serviceAccountPath = `${__dirname}/ass-10-firebase-adminsdk.json`;
-
-// Read the service account file content
-const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
+// Load the service account from the environment variable
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
+
 
 
 
@@ -40,17 +48,6 @@ const client = new MongoClient(uri, {
 });
 
 let collection;
-
-// async function connectDB() {
-//   try {
-//     await client.connect();
-//     const db = client.db("testDB");           // choose your DB name
-//     collection = db.collection("guu");      // choose your collection name
-//     console.log("✅ MongoDB Connected");
-//   } catch (err) {
-//     console.error("MongoDB connection error:", err);
-//   }
-// }
 
 async function connectDB() {
   try {

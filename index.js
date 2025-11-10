@@ -52,17 +52,15 @@ let collection;
 async function connectDB() {
   try {
     await client.connect();
-    const db = client.db("testDB");
-    collection = db.collection("users");
+    const db = client.db("testDB"); // Replace with your actual DB name
+    collection = db.collection("users"); // Replace with your collection name
     console.log("✅ MongoDB Connected");
-
-
   } catch (err) {
     console.error("MongoDB connection error:", err);
+    throw err; // Make sure to throw the error if the connection fails
   }
 }
 
-connectDB();
 
 const verify_user = async (req, res, next) => {
   if (!req.headers.auth_key) {
@@ -92,15 +90,9 @@ app.get("/", (req, res) => {
 // -----------------------------
 
 
-app.get("/users/email/:email", async (req, res) => {
-  try {
-    const user = await collection.findOne({ email: req.params.email });
-    if (!user) return res.status(404).json({ error: "User not found" });
-    res.json(user);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch user by email" });
-  }
-});
+async function init() {
+  await connectDB(); 
+
 
 
 app.post("/transactions", verify_user, async (req, res) => {
@@ -112,6 +104,9 @@ app.post("/transactions", verify_user, async (req, res) => {
   }
 
   if (Object.keys(req.body).length > 0) {
+    if (!collection) {
+      return res.status(500).json({ error: "Database not connected" });  // Ensure collection is initialized
+    }
     try {
       const result = await collection.insertOne(req.body);
       console.log(result.insertedId);
@@ -178,13 +173,16 @@ app.delete("/users/:id", async (req, res) => {
   }
 });
 
-
+}
 
 
 // -----------------------------
-
-const PORT = process.env.PORT;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+init().then(() => {
+  const PORT = process.env.PORT || 5001;  // Ensure port is defined
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}).catch((err) => {
+  console.error("Server failed to start due to database connection issue:", err);
+});
 
 
 

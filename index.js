@@ -9,6 +9,31 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+
+
+
+import admin from "firebase-admin";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+import fs from "fs";
+
+// Get the directory name of the current module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Set up the path to the service account file
+const serviceAccountPath = `${__dirname}/ass-10-firebase-adminsdk.json`;
+
+// Read the service account file content
+const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
+
+
+
 const uri = process.env.MONGO_URI;
 const client = new MongoClient(uri, {
   serverApi: { version: ServerApiVersion.v1, strict: true, deprecationErrors: true },
@@ -42,6 +67,29 @@ async function connectDB() {
 
 connectDB();
 
+const verify_user = async (req, res, next) => {
+
+  if (!req.headers.auth_key) {
+    return res.status(401).send("msg : Unauth access");
+  }
+  const token = req.headers.auth_key.split(' ')[1];
+  if (!token) {
+    return res.status(401).send("msg : Unauth access");
+  }
+
+  try {
+    const user = await admin.auth().verifyIdToken(token);
+    // console.log(user);
+     req.token_email = user.email;
+    next();
+  }
+  catch {
+    return res.status(401).send("msg : Unauth access");
+  }
+
+
+}
+
 app.get("/", (req, res) => {
   res.send("Hello from Express + MongoDB Native Driver!");
 });
@@ -63,11 +111,14 @@ app.get("/users/email/:email", async (req, res) => {
 });
 
 
-app.post("/transactions", async (req, res) => {
-    console.log(req.body)
-    return
+app.post("/transactions", verify_user,  async (req, res) => {
+  console.log("req email",req.headers.email)
+  console.log("mid email",req.token_email)
+
+  return
   try {
     const result = await collection.insertOne(req.body);
+    console.log(result.insertedId);
     res.status(201).json(result);
   } catch (error) {
     res.status(500).json({ error: "Failed to create user" });

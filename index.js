@@ -112,7 +112,9 @@ app.post("/transactions", verify_user,  async (req, res) => {
   console.log("req email",req.headers.email)
   console.log("mid email",req.token_email)
 
-  return
+  if (req.headers.email !== req.token_email) {
+     return res.status(403).send({msg:'forbiden'});
+  }
   try {
     const result = await collection.insertOne(req.body);
     console.log(result.insertedId);

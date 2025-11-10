@@ -77,7 +77,7 @@ const verify_user = async (req, res, next) => {
   try {
     const user = await admin.auth().verifyIdToken(token);
     // console.log(user);
-     req.token_email = user.email;
+    req.token_email = user.email;
     next();
   }
   catch {
@@ -108,20 +108,26 @@ app.get("/users/email/:email", async (req, res) => {
 });
 
 
-app.post("/transactions", verify_user,  async (req, res) => {
-  console.log("req email",req.headers.email)
-  console.log("mid email",req.token_email)
+app.post("/transactions", verify_user, async (req, res) => {
+  console.log("headers", req.headers)
+  console.log("data ----", req.body)
 
   if (req.headers.email !== req.token_email) {
-     return res.status(403).send({msg:'forbiden'});
+    return res.status(403).send({ msg: 'forbiden' });
   }
-  try {
-    const result = await collection.insertOne(req.body);
-    console.log(result.insertedId);
-    res.status(201).json(result);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to create user" });
+  if ( Object.keys(req.body).length >0) {
+    try {
+      const result = await collection.insertOne(req.body);
+      console.log(result.insertedId);
+      res.status(201).json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create user" });
+    }
   }
+
+
+  res.status(500).json({ error: "Failed to create user" });
+
 });
 
 

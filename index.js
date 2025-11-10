@@ -6,60 +6,51 @@ import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
 dotenv.config();
 
 const app = express();
-app.use(cors());              // If frontend and API are same Vercel domain, CORS is optional
+app.use(cors());
 app.use(express.json());
 
 const uri = process.env.MONGO_URI;
-if (!uri) {
-  throw new Error("Missing env var: MONGO_URI");
-}
-
-// --- Reuse Mongo client across serverless invocations ---
-let clientPromise;
-if (!globalThis._mongoClientPromise) {
-  const client = new MongoClient(uri, {
-    serverApi: { version: ServerApiVersion.v1, strict: true, deprecationErrors: true },
-    maxPoolSize: 10,
-  });
-  globalThis._mongoClientPromise = client.connect();
-}
-clientPromise = globalThis._mongoClientPromise;
+const client = new MongoClient(uri, {
+  serverApi: { version: ServerApiVersion.v1, strict: true, deprecationErrors: true },
+});
 
 let collection;
 
+// async function connectDB() {
+//   try {
+//     await client.connect();
+//     const db = client.db("testDB");           // choose your DB name
+//     collection = db.collection("guu");      // choose your collection name
+//     console.log("✅ MongoDB Connected");
+//   } catch (err) {
+//     console.error("MongoDB connection error:", err);
+//   }
+// }
+
 async function connectDB() {
   try {
-    const client = await clientPromise;
-    const db = client.db("testDB");      // choose your DB name
-    collection = db.collection("users"); // choose your collection name
-    // Optionally seed dummy data once
-    const count = await collection.countDocuments();
-    if (count === 0) {
-      await collection.insertMany([
-        { name: "Alice Johnson", email: "alice@example.com", age: 25, city: "New York" },
-        { name: "Bob Smith", email: "bob@example.com", age: 30, city: "London" },
-        { name: "Charlie Brown", email: "charlie@example.com", age: 28, city: "Toronto" },
-        { name: "Diana Adams", email: "diana@example.com", age: 27, city: "Berlin" },
-        { name: "Ethan Lee", email: "ethan@example.com", age: 32, city: "Tokyo" },
-      ]);
-      console.log("🌱 Inserted dummy users!");
-    }
-    console.log("✅ MongoDB Ready");
+    await client.connect();
+    const db = client.db("testDB");
+    collection = db.collection("users");
+    console.log("✅ MongoDB Connected");
+
+
   } catch (err) {
     console.error("MongoDB connection error:", err);
   }
 }
-// Kick off once at cold start
-await connectDB();
 
-// Health check
-app.get("/", (_req, res) => {
-  res.send("Hello from Express + MongoDB Native Driver (Vercel)!");
+connectDB();
+
+app.get("/", (req, res) => {
+  res.send("Hello from Express + MongoDB Native Driver!");
 });
+
 
 // -----------------------------
 // 🟩 CRUD Routes
 // -----------------------------
+
 
 app.get("/users/email/:email", async (req, res) => {
   try {
@@ -71,14 +62,18 @@ app.get("/users/email/:email", async (req, res) => {
   }
 });
 
+
 app.post("/transactions", async (req, res) => {
+    console.log(req.body)
+    return
   try {
     const result = await collection.insertOne(req.body);
     res.status(201).json(result);
   } catch (error) {
-    res.status(500).json({ error: "Failed to create transaction" });
+    res.status(500).json({ error: "Failed to create user" });
   }
 });
+
 
 // CREATE
 app.post("/users", async (req, res) => {
@@ -91,7 +86,7 @@ app.post("/users", async (req, res) => {
 });
 
 // READ (all)
-app.get("/users", async (_req, res) => {
+app.get("/users", async (req, res) => {
   try {
     const users = await collection.find().toArray();
     res.json(users);
@@ -132,5 +127,13 @@ app.delete("/users/:id", async (req, res) => {
   }
 });
 
-// ❗️Vercel serverless: export the handler (do NOT app.listen)
-export default app;
+
+
+
+// -----------------------------
+
+const PORT = process.env.PORT;
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
+
+

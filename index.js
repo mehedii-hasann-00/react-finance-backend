@@ -65,7 +65,6 @@ async function connectDB() {
 connectDB();
 
 const verify_user = async (req, res, next) => {
-
   if (!req.headers.auth_key) {
     return res.status(401).send("msg : Unauth access");
   }
@@ -76,16 +75,12 @@ const verify_user = async (req, res, next) => {
 
   try {
     const user = await admin.auth().verifyIdToken(token);
-    // console.log(user);
     req.token_email = user.email;
     next();
-  }
-  catch {
+  } catch {
     return res.status(401).send("msg : Unauth access");
   }
-
-
-}
+};
 
 app.get("/", (req, res) => {
   res.send("Hello from Express + MongoDB Native Driver!");
@@ -109,25 +104,25 @@ app.get("/users/email/:email", async (req, res) => {
 
 
 app.post("/transactions", verify_user, async (req, res) => {
-  console.log("headers", req.headers)
-  console.log("data ----", req.body)
+  console.log("headers", req.headers);
+  console.log("data ----", req.body);
 
   if (req.headers.email !== req.token_email) {
-    return res.status(403).send({ msg: 'forbiden' });
+    return res.status(403).send({ msg: 'Forbidden' });
   }
-  if ( Object.keys(req.body).length >0) {
+
+  if (Object.keys(req.body).length > 0) {
     try {
       const result = await collection.insertOne(req.body);
       console.log(result.insertedId);
-      res.status(201).json(result);
+      return res.status(201).json(result);
     } catch (error) {
-      res.status(500).json({ error: "Failed to create user" });
+      console.error(error);
+      return res.status(500).json({ error: "Failed to create transaction" });
     }
   }
 
-
-  res.status(500).json({ error: "Failed to create user" });
-
+  return res.status(400).json({ error: "Request body is empty" });
 });
 
 

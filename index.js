@@ -31,11 +31,11 @@ async function connectDB() {
   try {
     await client.connect();
     const db = client.db("testDB");
-    collection = db.collection("users"); 
+    collection = db.collection("users");
     console.log(" MongoDB Connected");
   } catch (err) {
     console.error("MongoDB connection error:", err);
-    throw err; 
+    throw err;
   }
 }
 
@@ -69,6 +69,35 @@ app.get("/", (req, res) => {
 async function init() {
   await connectDB();
 
+
+
+  app.get('/sort', verify_user, async (req, res) => {
+    if (req.headers.email !== req.token_email) {
+      return res.status(403).send({ msg: 'Forbidden' });
+    }
+
+    try {
+      const { sortBy, order } = req.query;
+
+      let sortQuery = { createdAt: -1 };
+
+      if (sortBy === 'date') {
+        sortQuery = { createdAt: order === 'asc' ? 1 : -1 };
+      } else if (sortBy === 'amount') {
+        sortQuery = { amount: order === 'asc' ? 1 : -1 };
+      }
+
+      const transactions = await collection.find().sort(sortQuery).toArray();
+
+      res.json(transactions);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to fetch transactions' });
+    }
+  });
+
+
+
   app.post("/transactions", verify_user, async (req, res) => {
     console.log("headers", req.headers);
     console.log("data ----", req.body);
@@ -79,7 +108,7 @@ async function init() {
 
     if (Object.keys(req.body).length > 0) {
       if (!collection) {
-        return res.status(500).json({ error: "Database not connected" }); 
+        return res.status(500).json({ error: "Database not connected" });
       }
       try {
         const result = await collection.insertOne(req.body);
@@ -155,7 +184,7 @@ async function init() {
 
       const result = await collection.updateOne(
         { _id: new ObjectId(req.params.id) },
-        update 
+        update
       );
 
       res.json(result);
@@ -182,7 +211,7 @@ async function init() {
 
 
 init().then(() => {
-  const PORT = process.env.PORT || 5001;  
+  const PORT = process.env.PORT || 5001;
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 }).catch((err) => {
   console.error("Server failed to start due to database connection issue:", err);

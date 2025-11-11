@@ -146,7 +146,7 @@ async function init() {
   });
 
   // UPDATE
-  app.put("/update/:id", verify_user, async (req, res) => {
+  app.put("/transaction/update/:id", verify_user, async (req, res) => {
     if (req.headers.email !== req.token_email) {
       return res.status(403).send({ msg: 'Forbidden' });
     }

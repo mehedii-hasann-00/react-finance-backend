@@ -103,11 +103,9 @@ async function init() {
     const { id } = req.params;
 
     try {
-      const db = await getDbConnection();
-      const collection = db.collection('transactions');
 
       const transaction = await collection.findOne({ _id: new ObjectId(id) });
-
+      console.log(transaction)
       if (!transaction) {
         return res.status(404).json({ error: 'Transaction not found' });
       }

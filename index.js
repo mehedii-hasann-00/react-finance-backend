@@ -10,25 +10,6 @@ app.use(cors());
 app.use(express.json());
 
 
-
-
-// import admin from "firebase-admin";
-// import { fileURLToPath } from "url";
-// import { dirname } from "path";
-// import fs from "fs";
-
-// const __filename = fileURLToPath(import.meta.url);
-// const __dirname = dirname(__filename);
-
-// const serviceAccountPath = `${__dirname}/ass-10-firebase-adminsdk.json`;
-
-// const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
-
-// admin.initializeApp({
-//   credential: admin.credential.cert(serviceAccount)
-// });
-
-
 import admin from "firebase-admin";
 
 // Load the service account from the environment variable
@@ -37,9 +18,6 @@ const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
-
-
-
 
 
 const uri = process.env.MONGO_URI;
@@ -91,87 +69,83 @@ app.get("/", (req, res) => {
 
 
 async function init() {
-  await connectDB(); 
+  await connectDB();
+
+  app.post("/transactions", verify_user, async (req, res) => {
+    console.log("headers", req.headers);
+    console.log("data ----", req.body);
+
+    if (req.headers.email !== req.token_email) {
+      return res.status(403).send({ msg: 'Forbidden' });
+    }
+
+    if (Object.keys(req.body).length > 0) {
+      if (!collection) {
+        return res.status(500).json({ error: "Database not connected" });  // Ensure collection is initialized
+      }
+      try {
+        const result = await collection.insertOne(req.body);
+        console.log(result.insertedId);
+        return res.status(201).json(result);
+      } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: "Failed to create transaction" });
+      }
+    }
+
+    return res.status(400).json({ error: "Request body is empty" });
+  });
 
 
+  // CREATE
+  app.post("/users", async (req, res) => {
+    try {
+      const result = await collection.insertOne(req.body);
+      res.status(201).json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create user" });
+    }
+  });
 
-app.post("/transactions", verify_user, async (req, res) => {
-  console.log("headers", req.headers);
-  console.log("data ----", req.body);
+  // READ
+  app.get("/get-data", verify_user, async (req, res) => {
+    if (req.headers.email !== req.token_email) {
+      return res.status(403).send({ msg: 'Forbidden' });
+    }
 
-  if (req.headers.email !== req.token_email) {
-    return res.status(403).send({ msg: 'Forbidden' });
-  }
-
-  if (Object.keys(req.body).length > 0) {
     if (!collection) {
       return res.status(500).json({ error: "Database not connected" });  // Ensure collection is initialized
     }
     try {
-      const result = await collection.insertOne(req.body);
-      console.log(result.insertedId);
-      return res.status(201).json(result);
+      const query = { email: req.headers.email };
+      const data = await collection.find(query).toArray();
+      return res.status(201).json(data);
     } catch (error) {
       console.error(error);
-      return res.status(500).json({ error: "Failed to create transaction" });
+      return res.status(500).json({ error: "Failed to get user data" });
     }
-  }
+  });
 
-  return res.status(400).json({ error: "Request body is empty" });
-});
+  // UPDATE
+  app.put("/users/:id", async (req, res) => {
+    try {
+      const update = { $set: req.body };
+      const result = await collection.updateOne({ _id: new ObjectId(req.params.id) }, update);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update user" });
+    }
+  });
 
-
-// CREATE
-app.post("/users", async (req, res) => {
-  try {
-    const result = await collection.insertOne(req.body);
-    res.status(201).json(result);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to create user" });
-  }
-});
-
-// READ (all)
-app.get("/users", async (req, res) => {
-  try {
-    const users = await collection.find().toArray();
-    res.json(users);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch users" });
-  }
-});
-
-// READ (single)
-app.get("/users/:id", async (req, res) => {
-  try {
-    const user = await collection.findOne({ _id: new ObjectId(req.params.id) });
-    if (!user) return res.status(404).json({ error: "User not found" });
-    res.json(user);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch user" });
-  }
-});
-
-// UPDATE
-app.put("/users/:id", async (req, res) => {
-  try {
-    const update = { $set: req.body };
-    const result = await collection.updateOne({ _id: new ObjectId(req.params.id) }, update);
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to update user" });
-  }
-});
-
-// DELETE
-app.delete("/users/:id", async (req, res) => {
-  try {
-    const result = await collection.deleteOne({ _id: new ObjectId(req.params.id) });
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to delete user" });
-  }
-});
+  // DELETE
+  app.delete("/users/:id", async (req, res) => {
+    try {
+      const result = await collection.deleteOne({ _id: new ObjectId(req.params.id) });
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete user" });
+    }
+  });
 
 }
 

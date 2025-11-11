@@ -96,9 +96,32 @@ async function init() {
     return res.status(400).json({ error: "Request body is empty" });
   });
 
+  app.get('/transactions/:id', verify_user, async (req, res) => {
+    if (req.headers.email !== req.token_email) {
+      return res.status(403).send({ msg: 'Forbidden' });
+    }
+    const { id } = req.params;
+
+    try {
+      const db = await getDbConnection();
+      const collection = db.collection('transactions');
+
+      const transaction = await collection.findOne({ _id: new ObjectId(id) });
+
+      if (!transaction) {
+        return res.status(404).json({ error: 'Transaction not found' });
+      }
+
+      res.status(200).json(transaction);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Failed to fetch transaction' });
+    }
+  });
+
 
   // CREATE
-  app.post("/users", async (req, res) => {
+  app.post("/users", verify_user, async (req, res) => {
     try {
       const result = await collection.insertOne(req.body);
       res.status(201).json(result);
@@ -127,18 +150,35 @@ async function init() {
   });
 
   // UPDATE
-  app.put("/users/:id", async (req, res) => {
+  app.put("/update/:id", verify_user, async (req, res) => {
+    if (req.headers.email !== req.token_email) {
+      return res.status(403).send({ msg: 'Forbidden' });
+    }
     try {
+      // The update operation: this will update fields in the transaction
       const update = { $set: req.body };
-      const result = await collection.updateOne({ _id: new ObjectId(req.params.id) }, update);
+
+      // The updateOne operation: 
+      // It looks for a transaction where _id matches the provided id and updates it with the new data
+      const result = await collection.updateOne(
+        { _id: new ObjectId(req.params.id) }, // Find transaction by _id
+        update // Apply the update to the document
+      );
+
+      // Respond with the result of the update operation
       res.json(result);
     } catch (error) {
-      res.status(500).json({ error: "Failed to update user" });
+      // Catch any errors that occur and send a 500 status with an error message
+      res.status(500).json({ error: "Failed to update transaction" });
     }
   });
 
+
   // DELETE
-  app.delete("/users/:id", async (req, res) => {
+  app.delete("/users/:id", verify_user, async (req, res) => {
+    if (req.headers.email !== req.token_email) {
+      return res.status(403).send({ msg: 'Forbidden' });
+    }
     try {
       const result = await collection.deleteOne({ _id: new ObjectId(req.params.id) });
       res.json(result);

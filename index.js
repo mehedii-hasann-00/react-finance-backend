@@ -79,6 +79,8 @@ async function init() {
     try {
       const { sortBy, order } = req.query;
 
+
+      const query = { email: req.headers.email };
       let sortQuery = { createdAt: -1 };
 
       if (sortBy === 'date') {
@@ -87,7 +89,8 @@ async function init() {
         sortQuery = { amount: order === 'asc' ? 1 : -1 };
       }
 
-      const transactions = await collection.find().sort(sortQuery).toArray();
+      const transactions = await collection.find(query).sort(sortQuery).toArray();
+
 
       res.json(transactions);
     } catch (err) {

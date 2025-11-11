@@ -30,12 +30,12 @@ let collection;
 async function connectDB() {
   try {
     await client.connect();
-    const db = client.db("testDB"); // Replace with your actual DB name
-    collection = db.collection("users"); // Replace with your collection name
-    console.log("✅ MongoDB Connected");
+    const db = client.db("testDB");
+    collection = db.collection("users"); 
+    console.log(" MongoDB Connected");
   } catch (err) {
     console.error("MongoDB connection error:", err);
-    throw err; // Make sure to throw the error if the connection fails
+    throw err; 
   }
 }
 
@@ -63,9 +63,7 @@ app.get("/", (req, res) => {
 });
 
 
-// -----------------------------
-// 🟩 CRUD Routes
-// -----------------------------
+
 
 
 async function init() {
@@ -81,7 +79,7 @@ async function init() {
 
     if (Object.keys(req.body).length > 0) {
       if (!collection) {
-        return res.status(500).json({ error: "Database not connected" });  // Ensure collection is initialized
+        return res.status(500).json({ error: "Database not connected" }); 
       }
       try {
         const result = await collection.insertOne(req.body);
@@ -153,20 +151,15 @@ async function init() {
       return res.status(403).send({ msg: 'Forbidden' });
     }
     try {
-      // The update operation: this will update fields in the transaction
       const update = { $set: req.body };
 
-      // The updateOne operation: 
-      // It looks for a transaction where _id matches the provided id and updates it with the new data
       const result = await collection.updateOne(
-        { _id: new ObjectId(req.params.id) }, // Find transaction by _id
-        update // Apply the update to the document
+        { _id: new ObjectId(req.params.id) },
+        update 
       );
 
-      // Respond with the result of the update operation
       res.json(result);
     } catch (error) {
-      // Catch any errors that occur and send a 500 status with an error message
       res.status(500).json({ error: "Failed to update transaction" });
     }
   });
@@ -188,9 +181,8 @@ async function init() {
 }
 
 
-// -----------------------------
 init().then(() => {
-  const PORT = process.env.PORT || 5001;  // Ensure port is defined
+  const PORT = process.env.PORT || 5001;  
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 }).catch((err) => {
   console.error("Server failed to start due to database connection issue:", err);

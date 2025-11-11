@@ -166,7 +166,7 @@ async function init() {
 
 
   // DELETE
-  app.delete("/users/:id", verify_user, async (req, res) => {
+  app.delete("/transactions/:id", verify_user, async (req, res) => {
     if (req.headers.email !== req.token_email) {
       return res.status(403).send({ msg: 'Forbidden' });
     }
